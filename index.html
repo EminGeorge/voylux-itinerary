@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoyLux Itinerary Builder</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/itinerary.css">
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<!-- ── Loading Overlay ───────────────────────────── -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Generating your itinerary…</p>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     INPUT SCREEN
+═════════════════════════════════════════════════ -->
+<div id="input-screen" style="display:flex">
+
+  <header class="app-header">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg" width="72" height="90">
+        <polygon points="20,10 40,65 50,38 70,10" fill="#c9a227"/>
+        <polygon points="50,38 70,10 70,65 50,65" fill="#c9a227" opacity="0.6"/>
+        <text x="40" y="80" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" font-weight="700" letter-spacing="3" fill="#c9a227">VOYLUX</text>
+        <text x="40" y="92" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="5.5" letter-spacing="3.5" fill="#c9a227">—LEISURE—</text>
+      </svg>
+    </div>
+    <h1>VoyLux Escapes</h1>
+    <p class="tagline">Curated &nbsp;|&nbsp; Seamless &nbsp;|&nbsp; Elevated</p>
+  </header>
+
+  <div class="input-card">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-text">📋 Paste Text</button>
+      <button class="tab-btn" data-tab="tab-file">📁 Upload File</button>
+    </div>
+
+    <!-- Tab: Paste Text -->
+    <div class="tab-panel active" id="tab-text">
+      <textarea
+        class="itinerary-textarea"
+        id="itinerary-text"
+        placeholder="Paste your raw itinerary text here…&#10;&#10;Example:&#10;Pax: 02 Adults&#10;Rooming: 01 DBL&#10;Travel period: June 2nd&#10;Quoted by: Athira&#10;&#10;01 NIGHTS PATTAYA, 03 NIGHTS BANGKOK&#10;04 NIGHTS 05 DAYS&#10;&#10;✅ Accommodation as per itinerary&#10;✅ Daily breakfast&#10;✅ All transfers&#10;&#10;OPTION 01&#10;Mike Garden Resort Pattaya / ibis Styles Bangkok&#10;THB 10,695 / 2 pax&#10;&#10;DAY 1: ARRIVAL PATTAYA&#10;- Arrive at Suvarnabhumi Airport&#10;- Private transfer to Pattaya hotel&#10;- Check-in and freshen up&#10;- Evening at leisure, explore Walking Street"
+      ></textarea>
+    </div>
+
+    <!-- Tab: Upload File -->
+    <div class="tab-panel" id="tab-file">
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-icon">📄</div>
+        <p>Drag &amp; drop your file here</p>
+        <p>or click to browse</p>
+        <small>Supports .txt · .docx · .pdf</small>
+        <input type="file" id="file-input" accept=".txt,.docx,.doc,.pdf">
+      </div>
+      <div id="file-name-display"></div>
+    </div>
+
+    <!-- Reference Number -->
+    <div class="ref-row">
+      <label for="ref-input">Reference No.</label>
+      <input
+        type="text"
+        class="ref-input"
+        id="ref-input"
+        placeholder="Auto-generated if empty"
+        maxlength="30"
+      >
+    </div>
+
+    <!-- Error -->
+    <div class="error-toast" id="error-toast"></div>
+
+    <!-- Generate -->
+    <button class="btn-generate" id="btn-generate">
+      Generate Itinerary ✨
+    </button>
+
+  </div><!-- .input-card -->
+
+</div><!-- #input-screen -->
+
+<!-- ════════════════════════════════════════════════
+     OUTPUT SCREEN
+═════════════════════════════════════════════════ -->
+<div id="output-screen">
+
+  <div class="output-toolbar">
+    <span class="toolbar-brand">VoyLux Itinerary Builder</span>
+    <button class="btn-toolbar btn-download" id="btn-download">⬇ Download PDF</button>
+    <button class="btn-toolbar btn-print" id="btn-print">🖨 Print</button>
+    <button class="btn-toolbar btn-restart" id="btn-restart">← Edit / Start Over</button>
+  </div>
+
+  <div class="pages-preview" id="pages-preview">
+    <!-- Rendered pages injected here by renderer.js -->
+  </div>
+
+</div><!-- #output-screen -->
+
+<!-- App scripts -->
+<script>
+  // Set PDF.js worker path
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
+<script src="js/parser.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/pdf-export.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

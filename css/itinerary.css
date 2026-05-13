@@ -1,0 +1,597 @@
+/* ── ITINERARY OUTPUT — matches PDF design ──────── */
+
+:root {
+  --pg-navy: #0a1628;
+  --pg-navy-light: #0f1f3d;
+  --pg-gold: #c9a227;
+  --pg-teal: #2a9d8f;
+  --pg-white: #ffffff;
+  --pg-border: #d0d0d0;
+  --pg-thead: #f5f5f5;
+  --pg-text: #1a1a2e;
+}
+
+/* ── Page wrapper ── */
+.itinerary-output {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+}
+
+/* ─────────────────────────────────────────────────
+   PAGE 1 — COVER
+───────────────────────────────────────────────── */
+.cover-page {
+  background: linear-gradient(160deg, #0a1628 0%, #1a3a5c 45%, #0d2240 75%, #0a1628 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 50px;
+}
+
+.cover-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(201,162,39,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 70%, rgba(42,157,143,0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Decorative diagonal lines */
+.cover-page::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 40px,
+    rgba(201,162,39,0.02) 40px,
+    rgba(201,162,39,0.02) 41px
+  );
+  pointer-events: none;
+}
+
+.cover-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  width: 100%;
+}
+
+.cover-logo-large {
+  margin-bottom: 48px;
+}
+
+.cover-logo-large svg {
+  width: 100px;
+  height: 125px;
+  filter: drop-shadow(0 0 20px rgba(201,162,39,0.4));
+}
+
+.cover-divider {
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--pg-gold), transparent);
+  margin: 0 auto 24px;
+}
+
+.cover-page .brand-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.2rem;
+  color: var(--pg-gold);
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 20px rgba(201,162,39,0.3);
+}
+
+.cover-page .brand-tagline {
+  font-size: 0.78rem;
+  letter-spacing: 6px;
+  color: rgba(201,162,39,0.65);
+  text-transform: uppercase;
+  margin-bottom: 64px;
+}
+
+.cover-destination {
+  margin-bottom: 32px;
+}
+
+.cover-destination .dest-label {
+  font-size: 0.65rem;
+  letter-spacing: 5px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.cover-destination .dest-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  color: var(--pg-white);
+  letter-spacing: 2px;
+}
+
+.cover-meta {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(201,162,39,0.2);
+}
+
+.cover-meta-item {
+  text-align: center;
+}
+
+.cover-meta-item .meta-label {
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.cover-meta-item .meta-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pg-gold);
+}
+
+.cover-bottom {
+  position: absolute;
+  bottom: 40px;
+  left: 0; right: 0;
+  text-align: center;
+}
+
+.cover-bottom p {
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────
+   CONTENT PAGES (2, 3, 4)
+───────────────────────────────────────────────── */
+.content-page {
+  background: #fff;
+  padding: 0;
+}
+
+.content-body {
+  padding: 24px 32px 48px;
+}
+
+/* Wave header — top right dark navy corner */
+.page-header {
+  position: relative;
+  height: 90px;
+  background: var(--pg-navy);
+  margin-bottom: 0;
+}
+
+.wave-header {
+  position: absolute;
+  inset: 0;
+  background: var(--pg-navy);
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  justify-content: space-between;
+}
+
+.wave-right {
+  position: absolute;
+  right: 0; top: 0;
+  width: 240px;
+  height: 90px;
+  background: var(--pg-navy-light);
+  clip-path: ellipse(95% 100% at 100% 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 20px;
+}
+
+.wave-right svg {
+  width: 52px;
+  height: 65px;
+}
+
+.page-ref {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--pg-gold);
+  text-transform: uppercase;
+}
+
+.page-title-header {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: var(--pg-white);
+  letter-spacing: 2px;
+}
+
+/* Watermark */
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+.watermark svg {
+  width: 220px;
+  height: 275px;
+}
+
+.content-body > * { position: relative; z-index: 1; }
+
+/* Section headings */
+.section-heading {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 8px 0 6px;
+  margin: 20px 0 10px;
+  border-bottom: 1px solid currentColor;
+}
+.section-heading.teal { color: var(--pg-teal); border-color: rgba(42,157,143,0.3); }
+.section-heading.gold { color: var(--pg-gold); border-color: rgba(201,162,39,0.3); }
+.section-heading.italic { font-style: italic; }
+
+/* Guest info table */
+.guest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-bottom: 16px;
+}
+.guest-table td {
+  padding: 7px 10px;
+  border: 1px solid var(--pg-border);
+  color: var(--pg-text);
+}
+.guest-table td.label {
+  background: var(--pg-thead);
+  font-weight: 600;
+  color: var(--pg-navy);
+  width: 22%;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Hotel options table */
+.hotel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-bottom: 12px;
+}
+.hotel-table th {
+  background: var(--pg-navy);
+  color: var(--pg-white);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.hotel-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--pg-border);
+  color: var(--pg-text);
+  vertical-align: top;
+}
+.hotel-table tr:nth-child(even) td { background: #fafafa; }
+.hotel-table td strong { color: var(--pg-navy); }
+.hotel-table .cost-cell {
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--pg-navy);
+}
+
+/* Day blocks */
+.day-block {
+  margin-bottom: 16px;
+  break-inside: avoid;
+}
+
+.day-heading {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pg-navy);
+  background: linear-gradient(90deg, rgba(201,162,39,0.12), transparent);
+  border-left: 3px solid var(--pg-gold);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.day-activities {
+  list-style: none;
+  padding: 0 0 0 14px;
+}
+.day-activities li {
+  position: relative;
+  font-size: 0.78rem;
+  color: #333;
+  line-height: 1.65;
+  padding: 3px 0 3px 16px;
+  border-bottom: 1px dotted rgba(0,0,0,0.06);
+}
+.day-activities li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--pg-teal);
+  font-size: 0.7rem;
+  top: 4px;
+}
+
+/* Inclusions / Exclusions list */
+.section-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 8px;
+  columns: 2;
+  column-gap: 20px;
+}
+.section-list li {
+  font-size: 0.76rem;
+  color: #333;
+  line-height: 1.6;
+  padding: 3px 0 3px 18px;
+  position: relative;
+  break-inside: avoid;
+}
+.section-list.inclusions li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--pg-teal);
+  font-weight: 700;
+}
+.section-list.exclusions li::before {
+  content: '✗';
+  position: absolute;
+  left: 0;
+  color: #c0392b;
+  font-weight: 700;
+}
+.section-list.single-col { columns: 1; }
+
+/* Payment terms */
+.payment-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 12px;
+}
+.payment-list li {
+  font-size: 0.76rem;
+  color: #333;
+  line-height: 1.65;
+  padding: 3px 0 3px 18px;
+  position: relative;
+}
+.payment-list li::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  color: var(--pg-gold);
+}
+
+/* Cancellation table */
+.cancellation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  margin-top: 8px;
+}
+.cancellation-table th {
+  background: var(--pg-navy);
+  color: var(--pg-white);
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.cancellation-table td {
+  padding: 8px 14px;
+  border: 1px solid var(--pg-border);
+  color: var(--pg-text);
+}
+.cancellation-table tr:nth-child(even) td { background: #fafafa; }
+.cancellation-table td strong { color: var(--pg-navy); }
+
+/* Notes section */
+.notes-block {
+  background: rgba(201,162,39,0.06);
+  border-left: 3px solid var(--pg-gold);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.notes-block p {
+  font-size: 0.76rem;
+  color: #444;
+  line-height: 1.7;
+}
+.notes-block p + p { margin-top: 6px; }
+
+/* Optional costs */
+.optional-block {
+  background: rgba(42,157,143,0.05);
+  border: 1px solid rgba(42,157,143,0.2);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.optional-block h5 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--pg-teal);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.optional-block p, .optional-block li {
+  font-size: 0.76rem;
+  color: #444;
+  line-height: 1.65;
+}
+.optional-block ul { list-style: none; padding: 0; }
+.optional-block li { padding: 2px 0 2px 16px; position: relative; }
+.optional-block li::before { content: '↦'; position: absolute; left: 0; color: var(--pg-teal); }
+
+/* Page number */
+.page-num {
+  position: absolute;
+  bottom: 14px;
+  right: 22px;
+  font-size: 0.68rem;
+  color: rgba(0,0,0,0.3);
+  letter-spacing: 1px;
+}
+
+/* ─────────────────────────────────────────────────
+   PAGE 5 — BACK COVER
+───────────────────────────────────────────────── */
+.back-cover {
+  background: linear-gradient(170deg, #0a1628 0%, #0f2040 40%, #0a2a1e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 40px;
+  color: var(--pg-white);
+  text-align: center;
+}
+
+.back-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 70% 20%, rgba(42,157,143,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, rgba(201,162,39,0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.back-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.back-cover .brand-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem;
+  color: var(--pg-gold);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+.back-cover .brand-tagline {
+  font-size: 0.7rem;
+  letter-spacing: 5px;
+  color: rgba(201,162,39,0.6);
+  text-transform: uppercase;
+  margin-bottom: 40px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 28px;
+  margin: 0 auto 40px;
+  max-width: 460px;
+}
+
+.feature {
+  text-align: center;
+}
+
+.feature .feat-icon {
+  font-size: 1.6rem;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.feature .feat-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pg-gold);
+  margin-bottom: 3px;
+}
+
+.feature .feat-sub {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.4;
+}
+
+.back-divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pg-gold), transparent);
+  margin: 0 auto 32px;
+}
+
+.back-logo { margin-bottom: 32px; }
+.back-logo svg {
+  width: 80px;
+  height: 100px;
+  filter: drop-shadow(0 0 16px rgba(201,162,39,0.35));
+}
+
+.company-address p {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.8;
+}
+.company-address p.gold { color: var(--pg-gold); }
+
+/* ── Print styles ────────────────────────────── */
+@media print {
+  body { background: white; }
+  #input-screen, .output-toolbar { display: none !important; }
+  #output-screen { display: flex !important; background: white; }
+  .pages-preview { padding: 0; gap: 0; }
+
+  .page {
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}
