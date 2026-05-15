@@ -2,217 +2,147 @@
 
 const Parser = (() => {
 
-  function clean(s) {
-    return (s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function extractAfter(text, ...labels) {
-    for (const label of labels) {
-      const re = new RegExp(label + '[:\\s]*([^\\n]+)', 'i');
-      const m = text.match(re);
-      if (m) return clean(m[1]);
-    }
-    return '';
-  }
-
   function autoRef() {
     const yr = new Date().getFullYear().toString().slice(-3);
     const num = Math.floor(1000 + Math.random() * 9000);
     return `VLX/TLND/${yr}/${num}R`;
   }
 
-  function parsePax(text) {
-    const adults = text.match(/(\d+)\s*(adults?|adlt)/i);
-    const children = text.match(/(\d+)\s*(children|child|kids?|peds?)/i);
-    return {
-      adults: adults ? parseInt(adults[1]) : 2,
-      children: children ? parseInt(children[1]) : 0,
-      childrenAges: ''
-    };
-  }
-
-  function parseNights(text) {
-    const nights = [];
-    // Match patterns like "01 NIGHTS PATTAYA" or "1 Night in Bangkok"
-    const re = /(\d+)\s*nights?\s+(?:in\s+)?([A-Z][A-Za-z\s]+?)(?=,|\.|\/|\d|$|\n)/gi;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      nights.push({ nights: parseInt(m[1]), city: clean(m[2]) });
-    }
-    // Fallback: "01 NIGHTS PATTAYA, 03 NIGHTS BANGKOK"
-    if (nights.length === 0) {
-      const re2 = /(\d+)\s*N(?:IGHTS?)?\s+([A-Z][A-Za-z]+)/g;
-      while ((m = re2.exec(text)) !== null) {
-        nights.push({ nights: parseInt(m[1]), city: clean(m[2]) });
-      }
-    }
-    return nights;
-  }
-
-  function parseTotalDays(text) {
-    const m = text.match(/(\d+)\s*nights?\s*[,&]?\s*(\d+)\s*days?/i)
-           || text.match(/(\d+)N\s*(\d+)D/i);
-    if (m) return { nights: parseInt(m[1]), days: parseInt(m[2]) };
-    // Infer from day blocks
-    const dayMatches = text.match(/^DAY\s*\d+/gim) || [];
-    const n = dayMatches.length;
-    return n > 0 ? { nights: n - 1, days: n } : { nights: 4, days: 5 };
-  }
-
-  function parseRooming(text) {
-    const m = text.match(/(\d+)\s*(DBL|Double|Twin|Single|SGL|TWN|Triple)/i);
-    if (!m) return '';
-    const typeMap = { dbl: 'Double', double: 'Double', twin: 'Twin', sgl: 'Single', twn: 'Twin', triple: 'Triple' };
-    const type = typeMap[(m[2] || '').toLowerCase()] || m[2];
-    return `${m[1].padStart(2,'0')} ${type} Room`;
-  }
-
-  function parseInclusions(text) {
-    const lines = text.split('\n');
-    const inc = [];
-    for (const line of lines) {
-      const l = line.trim();
-      if (l.startsWith('✅') || l.match(/^[✅✓✓✔]\s*/)) {
-        inc.push(l.replace(/^[✅✓✓✔\s]+/, '').trim());
-      }
-    }
-    return inc;
-  }
-
-  function parseHotelOptions(text) {
-    const options = [];
-    // Match OPTION 01 / OPTION 1 blocks
-    const re = /OPTION\s*(\d+)[:\s\-–]*([\s\S]*?)(?=OPTION\s*\d+|$)/gi;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      const block = m[2].trim();
-      // Extract hotel names (line 1 of block, or line before cost)
-      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-      let hotels = '';
-      let costTHB = 0;
-      let pax = 2;
-      for (const line of lines) {
-        // Cost line: THB 10,695 or 10695 or Rs 1234
-        const costM = line.match(/(?:THB|฿)\s*([\d,]+)/i)
-                    || line.match(/([\d,]+)\s*(?:THB|฿)/i)
-                    || line.match(/(?:cost|price|rate)[^:]*:\s*(?:THB)?\s*([\d,]+)/i);
-        if (costM) {
-          costTHB = parseInt(costM[1].replace(/,/g, ''));
-          const paxM = line.match(/\/\s*(\d+)\s*pax|for\s*(\d+)\s*pax/i);
-          if (paxM) pax = parseInt(paxM[1] || paxM[2]);
-          continue;
-        }
-        // Per pax cost in brackets
-        const ppM = line.match(/(?:THB|฿)\s*([\d,]+)\s*\/\s*(?:pax|person)/i);
-        if (ppM) { costTHB = parseInt(ppM[1].replace(/,/g, '')); continue; }
-
-        if (!hotels && line.length > 5) hotels = line;
-      }
-      options.push({
-        option: m[1].padStart(2, '0'),
-        hotels: hotels || block.split('\n')[0].trim(),
-        costTHB,
-        pax
-      });
-    }
-    return options;
-  }
-
-  function parseDays(text) {
-    const days = [];
-    // Split on DAY markers
-    const re = /^(DAY\s*\d+)[:\s\-–]*([^\n]*)/gim;
-    const splits = [];
-    let m;
-    while ((m = re.exec(text)) !== null) {
-      splits.push({ index: m.index, label: m[1].trim(), title: m[2].trim(), end: 0 });
-    }
-    for (let i = 0; i < splits.length; i++) {
-      splits[i].end = (i + 1 < splits.length) ? splits[i + 1].index : text.length;
-    }
-    for (const sp of splits) {
-      const block = text.slice(sp.index + sp.label.length + sp.title.length, sp.end);
-      const num = sp.label.replace(/[^0-9]/g, '');
-      const lines = block.split('\n')
-        .map(l => l.replace(/^[\-\*•▸→✈🚗🏨🍽️🧘📸🎫]*\s*/, '').trim())
-        .filter(l => l.length > 3 && !l.match(/^DAY\s*\d+/i));
-      days.push({
-        num,
-        title: sp.title || `Day ${num}`,
-        activities: lines.slice(0, 12)
-      });
-    }
-    return days;
-  }
-
-  function parseOptionalCosts(text) {
-    const m = text.match(/optional\s*costs?[\s\S]*?(?=\n\s*\n|\n[A-Z]{3,}|$)/i);
-    if (!m) return [];
-    return m[0].split('\n')
-      .slice(1)
-      .map(l => l.trim())
-      .filter(l => l.length > 2);
-  }
-
-  function parseNotes(text) {
-    const m = text.match(/please\s*note[\s\S]*?(?=\n\s*\n[A-Z]|$)/i);
-    if (!m) return [];
-    return m[0].split('\n')
-      .slice(1)
-      .map(l => l.replace(/^[\-\*•]\s*/, '').trim())
-      .filter(l => l.length > 3);
-  }
-
-  function inferDestination(nights) {
-    if (!nights.length) return 'Destination';
-    const cities = nights.map(n => n.city);
-    // Country mapping
-    const thaiCities = /pattaya|bangkok|chiang mai|phuket|koh samui|hua hin/i;
-    const indiaCities = /delhi|mumbai|goa|kerala|rajasthan|agra|jaipur|udaipur/i;
-    const europeMap = /paris|rome|london|amsterdam|barcelona|switzerland/i;
-    const cityStr = cities.join(' ');
-    if (thaiCities.test(cityStr)) return 'Thailand';
-    if (indiaCities.test(cityStr)) return 'India';
-    if (europeMap.test(cityStr)) return 'Europe';
-    return cities.join(' & ');
-  }
-
   function parse(rawText, manualRef) {
-    const text = rawText || '';
-
-    const guestName = extractAfter(text, 'guest name', 'guest', 'name', 'quoted for', 'prepared for') || 'Guest';
-    const pax = parsePax(text);
-    const rooming = parseRooming(text);
-    const travelPeriod = extractAfter(text, 'travel period', 'travel date', 'departure', 'travelling on', 'travel on') || '';
-    const quotedDate = extractAfter(text, 'quoted on', 'date') || '';
-    const quotedBy = extractAfter(text, 'quoted by', 'prepared by', 'agent') || '';
-    const nights = parseNights(text);
-    const totalDays = parseTotalDays(text);
-    const inclusions = parseInclusions(text);
-    const hotelOptions = parseHotelOptions(text);
-    const days = parseDays(text);
-    const optionalCosts = parseOptionalCosts(text);
-    const notes = parseNotes(text);
-    const destination = inferDestination(nights);
-    const reference = (manualRef && manualRef.trim()) ? manualRef.trim() : autoRef();
-
-    return {
-      guestName,
-      pax,
-      rooming,
-      travelPeriod,
-      quotedDate,
-      quotedBy,
-      destination,
-      nights,
-      totalDays,
-      inclusions,
-      hotelOptions,
-      days,
-      optionalCosts,
-      notes,
-      reference
+    const data = {
+      guestName: '',
+      destination: '',
+      travelDate: '',
+      duration: '',
+      guests: '',
+      rooming: '',
+      refNo: '',
+      totalCost: '',
+      accommodations: [],
+      days: [],
+      inclusions: [],
+      exclusions: [],
+      notes: '',
+      termsAndConditions: ''
     };
+
+    const text = rawText || '';
+    const fullText = text;
+
+    // --- Guest Name: first non-empty line before "Children" or "No of Pax" ---
+    const guestMatch = text.match(/^([A-Z][a-zA-Z\s]+?)(?:\s+Children|\s+No of Pax|\s+Vehicle|\s+Travel Date)/m);
+    if (guestMatch) data.guestName = guestMatch[1].trim();
+
+    // --- Reference Number ---
+    const refMatch = text.match(/(?:REF(?:ERENCE)?(?:\s*NO)?[:.\s]+|VLX\/|VLXTLND|Ref\s*[:.]?\s*)([A-Z0-9\/\-]+)/i);
+    if (refMatch) data.refNo = refMatch[1].trim();
+    if (manualRef && manualRef.trim()) data.refNo = manualRef.trim();
+    data.reference = data.refNo || autoRef();
+
+    // --- Total Cost ---
+    const costMatch = text.match(/Total\s+Cost\s*[:\s]*\$?\s*([\d,\.]+)/i);
+    if (costMatch) data.totalCost = '$ ' + costMatch[1].trim();
+
+    // --- Travel Date ---
+    const travelDateMatch = text.match(/Travel\s+Date\s*[:\s]*([\d]+\s*[-–]\s*\w+\s*[-–]\s*\d{4})/i);
+    if (travelDateMatch) data.travelDate = travelDateMatch[1].trim();
+
+    // --- Duration: "No of Days N" or "4N / 5D" pattern ---
+    const daysMatch = text.match(/No\.?\s+of\s+Days\s*[:\s]*(\d+)/i) || text.match(/(\d+)\s*N\s*[\/\s]\s*(\d+)\s*D/i);
+    if (daysMatch) {
+      if (daysMatch[2]) {
+        data.duration = daysMatch[1] + 'N / ' + daysMatch[2] + 'D';
+      } else {
+        const n = parseInt(daysMatch[1]) - 1;
+        data.duration = n + 'N / ' + daysMatch[1] + 'D';
+      }
+    }
+
+    // --- Guests: "No of Pax N" ---
+    const paxMatch = text.match(/No\.?\s+of\s+Pax\s*[:\s]*(\d+)/i);
+    if (paxMatch) data.guests = paxMatch[1] + ' Adults';
+
+    // --- Destination ---
+    const destinationKeywords = [
+      'Thailand', 'Bali', 'Indonesia', 'Singapore', 'Malaysia', 'Dubai',
+      'Europe', 'Maldives', 'Sri Lanka', 'Vietnam', 'Cambodia', 'Japan',
+      'Australia', 'Switzerland', 'London', 'Paris', 'Bangkok', 'Phuket',
+      'Kuta', 'Ubud', 'Gili', 'Lombok', 'Penida'
+    ];
+    for (const kw of destinationKeywords) {
+      if (fullText.includes(kw)) {
+        if (['Bali', 'Kuta', 'Ubud', 'Gili', 'Lombok', 'Penida'].includes(kw)) {
+          data.destination = 'Bali, Indonesia'; break;
+        }
+        if (['Bangkok', 'Phuket'].includes(kw)) {
+          data.destination = 'Thailand'; break;
+        }
+        data.destination = kw; break;
+      }
+    }
+    const destMatch = text.match(/DESTINATION\s*[:\-]?\s*([A-Za-z\s,]+?)(?:\n|DURATION|TRAVEL|GUEST)/i);
+    if (destMatch && !data.destination) data.destination = destMatch[1].trim();
+
+    // --- Rooming ---
+    const roomMatch = text.match(/(\d+)\s*(DBL|Double|Twin|Single|SGL|TWN|Triple)/i);
+    if (roomMatch) {
+      const typeMap = { dbl: 'Double', double: 'Double', twin: 'Twin', sgl: 'Single', twn: 'Twin', triple: 'Triple' };
+      const type = typeMap[(roomMatch[2] || '').toLowerCase()] || roomMatch[2];
+      data.rooming = `${roomMatch[1].padStart(2, '0')} ${type} Room`;
+    }
+
+    // --- Accommodations: parse ACCOMMODATIONS block ---
+    const accomMatch = text.match(/ACCOMMODATIONS?\s+([\s\S]+?)(?:DAY\s+1|ITINERARY|INCLUSIONS?|Check\s*-\s*in)/i);
+    if (accomMatch) {
+      const accomText = accomMatch[1];
+      const hotelMatch = accomText.match(/^(.+?)(?:\s*\((\d)\s*Star\))?(?:\s+Check\s*-\s*in|\s+Check\s*in)/i);
+      const checkInMatch = accomText.match(/Check\s*-?\s*in\s*[:\|]?\s*([\d]+\s*[-–]\s*\w+\s*[-–]\s*\d{4})/i);
+      const checkOutMatch = accomText.match(/Check\s*-?\s*out\s*[:\|]?\s*([\d]+\s*[-–]\s*\w+\s*[-–]\s*\d{4})/i);
+      const nightsMatch = accomText.match(/No\.?\s+of\s+Nights\s*[:\|]?\s*(\d+)/i);
+      if (hotelMatch) {
+        data.accommodations.push({
+          hotel: hotelMatch[1].trim(),
+          category: hotelMatch[2] ? hotelMatch[2] + ' Star' : '',
+          checkIn: checkInMatch ? checkInMatch[1] : '',
+          checkOut: checkOutMatch ? checkOutMatch[1] : '',
+          nights: nightsMatch ? nightsMatch[1] : ''
+        });
+      }
+    }
+
+    // --- Day-wise itinerary ---
+    const dayPattern = /DAY\s+(\d+)\s*[:\-–]?\s*([^\n]*)\n?([\s\S]*?)(?=DAY\s+\d+|INCLUSIONS?|ACCOMMODATIONS?|TERMS|$)/gi;
+    let dayMatch;
+    while ((dayMatch = dayPattern.exec(fullText)) !== null) {
+      const dayNum = parseInt(dayMatch[1]);
+      const title = dayMatch[2].trim();
+      const body = dayMatch[3].trim();
+      if (body || title) {
+        data.days.push({ day: dayNum, title: title || `Day ${dayNum}`, activities: body });
+      }
+    }
+
+    // --- Inclusions ---
+    const inclMatch = text.match(/INCLUSIONS?\s*\n([\s\S]+?)(?=EXCLUSIONS?|TERMS|PAYMENT|$)/i);
+    if (inclMatch) {
+      data.inclusions = inclMatch[1].split('\n')
+        .map(l => l.replace(/^[✓✗•\-*]+\s*/, '').trim())
+        .filter(l => l.length > 3 && !l.match(/^(EXCL|TERMS|PAYM)/i));
+    }
+
+    // --- Exclusions ---
+    const exclMatch = text.match(/EXCLUSIONS?\s*\n([\s\S]+?)(?=TERMS|PAYMENT|CANCELL|$)/i);
+    if (exclMatch) {
+      data.exclusions = exclMatch[1].split('\n')
+        .map(l => l.replace(/^[✓✗•\-*×x]+\s*/, '').trim())
+        .filter(l => l.length > 3 && !l.match(/^(TERMS|PAYM|CANCEL)/i));
+    }
+
+    // --- Terms and Conditions ---
+    const tcMatch = text.match(/TERMS\s*(?:&|AND)\s*CONDITIONS?\s*\n?([\s\S]+?)(?=INCLUSIONS?|PAYMENT\s+TERMS|$)/i);
+    if (tcMatch) data.termsAndConditions = tcMatch[1].trim();
+
+    return data;
   }
 
   return { parse, autoRef };

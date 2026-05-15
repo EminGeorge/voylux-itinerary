@@ -50,7 +50,7 @@ const Renderer = (() => {
     '50% of total package cost due 30 days before travel',
     'Balance 100% due 15 days before travel',
     'Payment accepted via bank transfer or UPI',
-    'All rates are quoted in THB unless otherwise specified',
+    'All rates are quoted unless otherwise specified',
     'Rates subject to change until booking is confirmed'
   ];
 
@@ -75,11 +75,41 @@ const Renderer = (() => {
     return `<div class="watermark">${WATERMARK_SVG}</div>`;
   }
 
+  /* Split a T&C string into formatted HTML, grouping by section headings */
+  function renderTCContent(tcText) {
+    if (!tcText) return '';
+    const lines = tcText.split(/[·•\n]/)
+      .map(l => l.trim())
+      .filter(l => l.length > 2);
+
+    const sections = [];
+    let current = { heading: '', items: [] };
+    for (const line of lines) {
+      if (line.match(/^(IMPORTANT\s+NOTES?|PAYMENT\s+TERMS?|CANCELLATION|BANK\s+DETAILS?|GENERAL\s+NOTES?)/i) && line.length < 60) {
+        if (current.items.length > 0 || current.heading) sections.push({ ...current });
+        current = { heading: line, items: [] };
+      } else {
+        current.items.push(line);
+      }
+    }
+    if (current.items.length > 0 || current.heading) sections.push(current);
+
+    if (sections.length === 0) return '';
+    if (sections.length === 1 && !sections[0].heading) {
+      return `<ul class="payment-list">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>`;
+    }
+    return sections.map(sec => `
+      ${sec.heading ? `<h4 class="tc-subheading">${esc(sec.heading)}</h4>` : ''}
+      ${sec.items.length > 0 ? `<ul class="payment-list">${sec.items.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}
+    `).join('');
+  }
+
   /* ── PAGE 1: Cover ── */
   function renderCover(data) {
-    const nightsSummary = data.nights.length > 0
-      ? data.nights.map(n => `${n.nights}N ${n.city}`).join(' + ')
-      : `${data.totalDays.nights}N ${data.totalDays.days}D`;
+    const dest = data.destination || 'Your Destination';
+    const accomSummary = data.accommodations.length > 0
+      ? data.accommodations.map(a => a.hotel).join(' · ')
+      : '';
 
     return `
     <div class="page cover-page" id="pg-cover">
@@ -91,34 +121,35 @@ const Renderer = (() => {
 
         <div class="cover-destination">
           <p class="dest-label">Destination</p>
-          <p class="dest-name">${esc(data.destination)}</p>
+          <p class="dest-name">${esc(dest)}</p>
         </div>
 
         <div class="cover-meta">
+          ${data.duration ? `
           <div class="cover-meta-item">
             <div class="meta-label">Duration</div>
-            <div class="meta-value">${data.totalDays.nights}N / ${data.totalDays.days}D</div>
-          </div>
-          ${data.travelPeriod ? `
+            <div class="meta-value">${esc(data.duration)}</div>
+          </div>` : ''}
+          ${data.travelDate ? `
           <div class="cover-meta-item">
             <div class="meta-label">Travel Period</div>
-            <div class="meta-value">${esc(data.travelPeriod)}</div>
+            <div class="meta-value">${esc(data.travelDate)}</div>
           </div>` : ''}
+          ${data.guests ? `
           <div class="cover-meta-item">
             <div class="meta-label">Guests</div>
-            <div class="meta-value">${data.pax.adults} Adult${data.pax.adults !== 1 ? 's' : ''}${data.pax.children > 0 ? ` · ${data.pax.children} Child${data.pax.children !== 1 ? 'ren' : ''}` : ''}</div>
-          </div>
-          ${nightsSummary ? `
+            <div class="meta-value">${esc(data.guests)}</div>
+          </div>` : ''}
+          ${accomSummary ? `
           <div class="cover-meta-item">
-            <div class="meta-label">Itinerary</div>
-            <div class="meta-value" style="font-size:0.72rem">${esc(nightsSummary)}</div>
+            <div class="meta-label">Accommodation</div>
+            <div class="meta-value" style="font-size:0.72rem">${esc(accomSummary)}</div>
           </div>` : ''}
         </div>
       </div>
 
       <div class="cover-bottom">
         <p>Ref: ${esc(data.reference)}</p>
-        ${data.quotedBy ? `<p style="margin-top:4px">Prepared by ${esc(data.quotedBy)}${data.quotedDate ? ' · ' + esc(data.quotedDate) : ''}</p>` : ''}
       </div>
 
       <span class="page-num">1</span>
@@ -129,24 +160,22 @@ const Renderer = (() => {
   function renderPage2(data) {
     const inclList = data.inclusions.length > 0 ? data.inclusions : DEFAULT_INCLUSIONS;
 
-    const hotelRows = data.hotelOptions.length > 0
-      ? data.hotelOptions.map(opt => `
+    const accomRows = data.accommodations.length > 0
+      ? data.accommodations.map(a => `
         <tr>
-          <td><strong>Option ${esc(opt.option)}</strong></td>
-          <td>${esc(opt.hotels)}</td>
-          <td class="cost-cell">${opt.costTHB > 0
-            ? `<strong>THB ${opt.costTHB.toLocaleString()}</strong><br><small style="color:#888;font-size:0.68rem">/ ${opt.pax} pax</small>`
-            : '<span style="color:#aaa">On request</span>'
-          }</td>
+          <td><strong>${esc(a.hotel)}</strong></td>
+          <td>${esc(a.category) || '—'}</td>
+          <td>${a.checkIn && a.checkOut
+            ? `${esc(a.checkIn)} – ${esc(a.checkOut)}${a.nights ? ` (${esc(a.nights)}N)` : ''}`
+            : (a.checkIn || a.checkOut || '—')}</td>
+          <td class="cost-cell">${data.totalCost
+            ? `<strong>${esc(data.totalCost)}</strong>`
+            : '<span style="color:#aaa">On request</span>'}</td>
         </tr>`).join('')
-      : `<tr><td colspan="3" style="text-align:center;color:#aaa;font-size:0.78rem">Hotel options not specified</td></tr>`;
-
-    const nightsBreakdown = data.nights.length > 0
-      ? data.nights.map(n => `${n.nights} Night${n.nights !== 1 ? 's' : ''} — ${n.city}`).join('<br>')
-      : `${data.totalDays.nights} Nights / ${data.totalDays.days} Days`;
+      : `<tr><td colspan="4" style="text-align:center;color:#aaa;font-size:0.78rem">Accommodation details not specified</td></tr>`;
 
     return `
-    <div class="page content-page" id="pg-2">
+    <div class="page content-page page-break-before" id="pg-2">
       ${pageHeader(data, 'Detailed Itinerary')}
       ${watermark()}
 
@@ -155,62 +184,46 @@ const Renderer = (() => {
         <table class="guest-table">
           <tr>
             <td class="label">Guest Name</td>
-            <td colspan="3">${esc(data.guestName)}</td>
+            <td colspan="3">${esc(data.guestName) || '—'}</td>
           </tr>
           <tr>
-            <td class="label">No. of Adults</td>
-            <td>${data.pax.adults}</td>
-            <td class="label">No. of Children</td>
-            <td>${data.pax.children || '—'}</td>
-          </tr>
-          <tr>
+            <td class="label">No. of Guests</td>
+            <td>${esc(data.guests) || '—'}</td>
             <td class="label">Rooming</td>
             <td>${esc(data.rooming) || '—'}</td>
-            <td class="label">Duration</td>
-            <td>${data.totalDays.nights}N / ${data.totalDays.days}D</td>
           </tr>
           <tr>
+            <td class="label">Duration</td>
+            <td>${esc(data.duration) || '—'}</td>
             <td class="label">Travel Period</td>
-            <td colspan="3">${esc(data.travelPeriod) || '—'}</td>
+            <td>${esc(data.travelDate) || '—'}</td>
           </tr>
-          ${data.quotedBy ? `<tr>
-            <td class="label">Quoted By</td>
-            <td>${esc(data.quotedBy)}</td>
-            <td class="label">Quoted On</td>
-            <td>${esc(data.quotedDate) || '—'}</td>
+          ${data.totalCost ? `<tr>
+            <td class="label">Total Cost</td>
+            <td colspan="3"><strong style="color:#c9a227">${esc(data.totalCost)}</strong></td>
           </tr>` : ''}
         </table>
-
-        <!-- Night breakdown -->
-        <p style="font-size:0.74rem;color:#555;margin-bottom:16px;padding:6px 10px;background:#f9f9f9;border-left:3px solid #c9a227;">
-          <strong style="color:#0a1628;">Route:</strong> &nbsp;${nightsBreakdown}
-        </p>
 
         <!-- Accommodations -->
         <h3 class="section-heading teal">Accommodations</h3>
         <table class="hotel-table">
           <thead>
             <tr>
+              <th style="width:35%">Hotel / Property</th>
               <th style="width:15%">Category</th>
-              <th>Hotel / Property</th>
-              <th style="width:22%">Package Cost</th>
+              <th style="width:30%">Stay Period</th>
+              <th style="width:20%">Package Cost</th>
             </tr>
           </thead>
-          <tbody>${hotelRows}</tbody>
+          <tbody>${accomRows}</tbody>
         </table>
-        <p style="font-size:0.68rem;color:#888;font-style:italic;margin-top:4px">* Rates in THB. INR equivalent available on request. Subject to availability at time of confirmation.</p>
+        <p style="font-size:0.68rem;color:#888;font-style:italic;margin-top:4px">* Rates as quoted. Subject to availability at time of confirmation.</p>
 
         <!-- Inclusions preview -->
         <h3 class="section-heading teal" style="margin-top:18px">Package Inclusions Overview</h3>
         <ul class="section-list inclusions">
           ${inclList.map(i => `<li>${esc(i)}</li>`).join('')}
         </ul>
-
-        ${data.optionalCosts.length > 0 ? `
-        <div class="optional-block">
-          <h5>Optional Add-ons</h5>
-          <ul>${data.optionalCosts.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
-        </div>` : ''}
       </div>
 
       <span class="page-num">2</span>
@@ -220,25 +233,32 @@ const Renderer = (() => {
   /* ── PAGE 3: Day-by-day Itinerary ── */
   function renderPage3(data) {
     const dayBlocks = data.days.length > 0
-      ? data.days.map(day => `
-        <div class="day-block">
-          <h4 class="day-heading">Day ${esc(day.num)}: ${esc(day.title)}</h4>
-          <ul class="day-activities">
-            ${day.activities.map(a => `<li>${esc(a)}</li>`).join('')}
-          </ul>
-        </div>`).join('')
+      ? data.days.map(day => {
+          let actLines = (day.activities || '').split('\n')
+            .map(l => l.replace(/^[•·▸→✈🚗🏨🍽️🧘📸🎫\-*]+\s*/, '').trim())
+            .filter(l => l.length > 2);
+          if (actLines.length === 0 && (day.activities || '').trim()) {
+            actLines = [day.activities.trim()];
+          }
+          return `
+          <div class="day-block avoid-break">
+            <h4 class="day-heading">Day ${esc(String(day.day))}: ${esc(day.title)}</h4>
+            <ul class="day-activities">
+              ${actLines.map(a => `<li>${esc(a)}</li>`).join('')}
+            </ul>
+          </div>`;
+        }).join('')
       : `<p style="font-size:0.8rem;color:#888;text-align:center;padding:40px 0;">No day-by-day itinerary provided in the input.</p>`;
 
     return `
-    <div class="page content-page" id="pg-3">
+    <div class="page content-page page-break-before" id="pg-3">
       ${pageHeader(data, 'Tentative Itinerary')}
       ${watermark()}
 
       <div class="content-body">
-        <h3 class="section-heading gold">Tentative Itinerary — ${esc(data.destination)}</h3>
+        <h3 class="section-heading gold">Tentative Itinerary — ${esc(data.destination || 'Your Destination')}</h3>
         <p style="font-size:0.72rem;color:#888;margin-bottom:14px;font-style:italic">
-          ${data.totalDays.nights} Nights / ${data.totalDays.days} Days &nbsp;·&nbsp;
-          ${data.nights.map(n => `${n.nights}N ${n.city}`).join(', ') || data.destination}
+          ${esc(data.duration || '')}${data.travelDate ? ` &nbsp;·&nbsp; ${esc(data.travelDate)}` : ''}
         </p>
         ${dayBlocks}
       </div>
@@ -250,7 +270,12 @@ const Renderer = (() => {
   /* ── PAGE 4: Notes, Inclusions, Exclusions, Payment ── */
   function renderPage4(data) {
     const inclList = data.inclusions.length > 0 ? data.inclusions : DEFAULT_INCLUSIONS;
-    const notesList = data.notes.length > 0 ? data.notes : [
+    const exclList = data.exclusions.length > 0 ? data.exclusions : DEFAULT_EXCLUSIONS;
+
+    const noteLines = data.notes
+      ? data.notes.split('\n').map(l => l.replace(/^[•·\-*]+\s*/, '').trim()).filter(l => l.length > 2)
+      : [];
+    const notesList = noteLines.length > 0 ? noteLines : [
       'Rates are based on current availability and are subject to change until confirmed.',
       'Hotel rooms are subject to availability; similar category properties may be substituted.',
       'All entry tickets, transfers, and tours are as per the itinerary only.',
@@ -258,8 +283,12 @@ const Renderer = (() => {
       'Peak season surcharges may apply for travel during public holidays.'
     ];
 
+    const tcHtml = data.termsAndConditions
+      ? renderTCContent(data.termsAndConditions)
+      : `<ul class="payment-list">${DEFAULT_PAYMENT_TERMS.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+
     return `
-    <div class="page content-page" id="pg-4">
+    <div class="page content-page page-break-before" id="pg-4">
       ${pageHeader(data, 'Terms & Conditions')}
       ${watermark()}
 
@@ -280,14 +309,12 @@ const Renderer = (() => {
         <!-- Exclusions -->
         <h3 class="section-heading teal">Exclusions</h3>
         <ul class="section-list exclusions">
-          ${DEFAULT_EXCLUSIONS.map(e => `<li>${esc(e)}</li>`).join('')}
+          ${exclList.map(e => `<li>${esc(e)}</li>`).join('')}
         </ul>
 
-        <!-- Payment Terms -->
+        <!-- Payment Terms & T&C -->
         <h3 class="section-heading teal">Payment Terms &amp; Conditions</h3>
-        <ul class="payment-list">
-          ${DEFAULT_PAYMENT_TERMS.map(t => `<li>${esc(t)}</li>`).join('')}
-        </ul>
+        ${tcHtml}
 
         <!-- Cancellation Policy -->
         <h3 class="section-heading gold" style="margin-top:14px">Cancellation Policy</h3>
@@ -335,7 +362,7 @@ const Renderer = (() => {
     ];
 
     return `
-    <div class="page back-cover" id="pg-back">
+    <div class="page back-cover page-break-before" id="pg-back">
       <div class="back-inner">
         <h1 class="brand-title">VoyLux Escapes</h1>
         <p class="brand-tagline">Curated &nbsp;|&nbsp; Seamless &nbsp;|&nbsp; Elevated</p>

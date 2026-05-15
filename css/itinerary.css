@@ -575,6 +575,20 @@
 }
 .company-address p.gold { color: var(--pg-gold); }
 
+/* ── Page break helpers (used by html2pdf + print) ── */
+.page-break-before { page-break-before: always; break-before: page; }
+.avoid-break       { page-break-inside: avoid;  break-inside: avoid; }
+
+/* T&C sub-section heading */
+.tc-subheading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pg-navy);
+  margin: 14px 0 6px;
+}
+
 /* ── Print styles ────────────────────────────── */
 @media print {
   body { background: white; }

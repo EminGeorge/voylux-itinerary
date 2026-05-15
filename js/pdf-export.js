@@ -23,7 +23,7 @@ const PDFExport = (() => {
         logging: false
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'], before: '.page' }
+      pagebreak: { mode: ['css', 'legacy'], before: '.page-break-before', avoid: '.avoid-break' }
     };
 
     html2pdf()
