@@ -58,21 +58,38 @@ const Renderer = (() => {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /* Two-panel flex header: title on left, dark accent block with logo on right */
   function pageHeader(data, pageTitle) {
     return `
       <div class="page-header">
-        <div class="wave-header">
-          <div>
+        <div class="section-header">
+          <div class="title">
             <div class="page-ref">${esc(data.reference)}</div>
             <div class="page-title-header">${esc(pageTitle)}</div>
           </div>
-          <div class="wave-right">${LOGO_SVG_WHITE}</div>
+          <div class="accent">${LOGO_SVG_WHITE}</div>
         </div>
+      </div>`;
+  }
+
+  /* Full-width footer bar with ref on left, page number on right */
+  function pageFooter(data, pageNum, total) {
+    return `
+      <div class="page-footer">
+        <span class="footer-ref">${esc(data.reference)}</span>
+        <span class="footer-pg">Page ${pageNum} of ${total}</span>
       </div>`;
   }
 
   function watermark() {
     return `<div class="watermark">${WATERMARK_SVG}</div>`;
+  }
+
+  /* Render inclusions as a strict 2-column CSS grid */
+  function inclGrid(items) {
+    return `<ul class="inclusions-grid">
+      ${items.map(i => `<li class="incl-item"><span class="incl-check">✓</span><span>${esc(i)}</span></li>`).join('')}
+    </ul>`;
   }
 
   /* Split a T&C string into formatted HTML, grouping by section headings */
@@ -143,7 +160,7 @@ const Renderer = (() => {
           ${accomSummary ? `
           <div class="cover-meta-item">
             <div class="meta-label">Accommodation</div>
-            <div class="meta-value" style="font-size:0.72rem">${esc(accomSummary)}</div>
+            <div class="meta-value">${esc(accomSummary)}</div>
           </div>` : ''}
         </div>
       </div>
@@ -160,19 +177,25 @@ const Renderer = (() => {
   function renderPage2(data) {
     const inclList = data.inclusions.length > 0 ? data.inclusions : DEFAULT_INCLUSIONS;
 
+    /* 3-column hotel table: Category | Hotel/Property (with stay period) | Cost */
     const accomRows = data.accommodations.length > 0
-      ? data.accommodations.map(a => `
-        <tr>
-          <td><strong>${esc(a.hotel)}</strong></td>
-          <td>${esc(a.category) || '—'}</td>
-          <td>${a.checkIn && a.checkOut
+      ? data.accommodations.map(a => {
+          const stayPeriod = a.checkIn && a.checkOut
             ? `${esc(a.checkIn)} – ${esc(a.checkOut)}${a.nights ? ` (${esc(a.nights)}N)` : ''}`
-            : (a.checkIn || a.checkOut || '—')}</td>
-          <td class="cost-cell">${data.totalCost
-            ? `<strong>${esc(data.totalCost)}</strong>`
-            : '<span style="color:#aaa">On request</span>'}</td>
-        </tr>`).join('')
-      : `<tr><td colspan="4" style="text-align:center;color:#aaa;font-size:0.78rem">Accommodation details not specified</td></tr>`;
+            : '';
+          return `
+          <tr>
+            <td style="width:15%">${esc(a.category) || '—'}</td>
+            <td style="width:55%">
+              <strong>${esc(a.hotel)}</strong>
+              ${stayPeriod ? `<br><small style="color:#888;font-size:0.68rem">${stayPeriod}</small>` : ''}
+            </td>
+            <td class="cost-cell" style="width:30%">${data.totalCost
+              ? `<strong>${esc(data.totalCost)}</strong>`
+              : '<span style="color:#aaa">On request</span>'}</td>
+          </tr>`;
+        }).join('')
+      : `<tr><td colspan="3" style="text-align:center;color:#aaa;font-size:0.78rem">Accommodation details not specified</td></tr>`;
 
     return `
     <div class="page content-page page-break-before" id="pg-2">
@@ -209,29 +232,28 @@ const Renderer = (() => {
         <table class="hotel-table">
           <thead>
             <tr>
-              <th style="width:35%">Hotel / Property</th>
               <th style="width:15%">Category</th>
-              <th style="width:30%">Stay Period</th>
-              <th style="width:20%">Package Cost</th>
+              <th style="width:55%">Hotel / Property</th>
+              <th style="width:30%">Package Cost</th>
             </tr>
           </thead>
           <tbody>${accomRows}</tbody>
         </table>
         <p style="font-size:0.68rem;color:#888;font-style:italic;margin-top:4px">* Rates as quoted. Subject to availability at time of confirmation.</p>
 
-        <!-- Inclusions preview -->
+        <!-- Inclusions -->
         <h3 class="section-heading teal" style="margin-top:18px">Package Inclusions Overview</h3>
-        <ul class="section-list inclusions">
-          ${inclList.map(i => `<li>${esc(i)}</li>`).join('')}
-        </ul>
+        ${inclGrid(inclList)}
       </div>
 
-      <span class="page-num">2</span>
+      ${pageFooter(data, 2, 5)}
     </div>`;
   }
 
   /* ── PAGE 3: Day-by-day Itinerary ── */
   function renderPage3(data) {
+    const dest = data.destination || 'Your Destination';
+
     const dayBlocks = data.days.length > 0
       ? data.days.map(day => {
           let actLines = (day.activities || '').split('\n')
@@ -250,20 +272,22 @@ const Renderer = (() => {
         }).join('')
       : `<p style="font-size:0.8rem;color:#888;text-align:center;padding:40px 0;">No day-by-day itinerary provided in the input.</p>`;
 
+    /* Subtitle: duration · destination · travelDate — only non-empty parts */
+    const subtitleParts = [data.duration, dest, data.travelDate].filter(Boolean);
+    const subtitle = subtitleParts.map(esc).join(' &nbsp;·&nbsp; ');
+
     return `
     <div class="page content-page page-break-before" id="pg-3">
       ${pageHeader(data, 'Tentative Itinerary')}
       ${watermark()}
 
       <div class="content-body">
-        <h3 class="section-heading gold">Tentative Itinerary — ${esc(data.destination || 'Your Destination')}</h3>
-        <p style="font-size:0.72rem;color:#888;margin-bottom:14px;font-style:italic">
-          ${esc(data.duration || '')}${data.travelDate ? ` &nbsp;·&nbsp; ${esc(data.travelDate)}` : ''}
-        </p>
+        <h3 class="section-heading gold">Tentative Itinerary — ${esc(dest)}</h3>
+        <p style="font-size:0.72rem;color:#888;margin-bottom:14px;font-style:italic">${subtitle}</p>
         ${dayBlocks}
       </div>
 
-      <span class="page-num">3</span>
+      ${pageFooter(data, 3, 5)}
     </div>`;
   }
 
@@ -302,9 +326,7 @@ const Renderer = (() => {
 
         <!-- Inclusions -->
         <h3 class="section-heading teal">Inclusions</h3>
-        <ul class="section-list inclusions">
-          ${inclList.map(i => `<li>${esc(i)}</li>`).join('')}
-        </ul>
+        ${inclGrid(inclList)}
 
         <!-- Exclusions -->
         <h3 class="section-heading teal">Exclusions</h3>
@@ -346,7 +368,7 @@ const Renderer = (() => {
         </table>
       </div>
 
-      <span class="page-num">4</span>
+      ${pageFooter(data, 4, 5)}
     </div>`;
   }
 

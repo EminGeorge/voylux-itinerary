@@ -125,14 +125,17 @@
 .cover-meta {
   display: flex;
   justify-content: center;
-  gap: 48px;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid rgba(201,162,39,0.2);
 }
 
 .cover-meta-item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   text-align: center;
+  padding: 0 8px;
 }
 
 .cover-meta-item .meta-label {
@@ -147,6 +150,10 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--pg-gold);
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .cover-bottom {
@@ -172,7 +179,7 @@
 }
 
 .content-body {
-  padding: 24px 32px 48px;
+  padding: 24px 32px 56px;
 }
 
 /* Wave header — top right dark navy corner */
@@ -260,6 +267,7 @@
 /* Guest info table */
 .guest-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.78rem;
   margin-bottom: 16px;
@@ -268,12 +276,14 @@
   padding: 7px 10px;
   border: 1px solid var(--pg-border);
   color: var(--pg-text);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .guest-table td.label {
   background: var(--pg-thead);
   font-weight: 600;
   color: var(--pg-navy);
-  width: 22%;
+  width: 25%;
   font-size: 0.72rem;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -282,6 +292,7 @@
 /* Hotel options table */
 .hotel-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.78rem;
   margin-bottom: 12px;
@@ -574,6 +585,84 @@
   line-height: 1.8;
 }
 .company-address p.gold { color: var(--pg-gold); }
+
+/* ── Section header banner (replaces wave-header layout) ── */
+.section-header {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+}
+.section-header .title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 32px;
+  background: var(--pg-navy);
+}
+.section-header .accent {
+  width: 200px;
+  flex-shrink: 0;
+  background: #0d1a33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.section-header .accent svg {
+  width: 52px;
+  height: 65px;
+}
+
+/* ── Full-width page footer (content pages 2–4) ── */
+.page-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 32px;
+  background: var(--pg-navy);
+  border-top: 1px solid rgba(201,162,39,0.15);
+}
+.page-footer .footer-ref {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--pg-gold);
+  text-transform: uppercase;
+}
+.page-footer .footer-pg {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ── Package inclusions 2-column grid ── */
+.inclusions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 8px;
+}
+.inclusions-grid .incl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.76rem;
+  color: #333;
+  line-height: 1.6;
+}
+.inclusions-grid .incl-item .incl-check {
+  color: var(--pg-teal);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 
 /* ── Page break helpers (used by html2pdf + print) ── */
 .page-break-before { page-break-before: always; break-before: page; }
