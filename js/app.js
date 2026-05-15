@@ -63,16 +63,33 @@
       reader.onload = e => { textarea.value = e.target.result; switchToText(); };
       reader.readAsText(file);
 
-    } else if (name.endsWith('.docx')) {
+    } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
       if (typeof mammoth === 'undefined') {
         showError('mammoth.js not loaded — refresh and try again.');
         return;
       }
       const reader = new FileReader();
       reader.onload = e => {
-        mammoth.extractRawValue({ arrayBuffer: e.target.result })
-          .then(result => { textarea.value = result.value; switchToText(); })
-          .catch(() => showError('Could not read DOCX file.'));
+        mammoth.extractRawText({ arrayBuffer: e.target.result })
+          .then(result => {
+            if (!result.value.trim()) {
+              if (name.endsWith('.doc')) {
+                showError('.doc format has limited support. Try saving as .docx and re-uploading, or paste the text manually.');
+              } else {
+                showError('Could not extract text from this DOCX file.');
+              }
+              return;
+            }
+            textarea.value = result.value;
+            switchToText();
+          })
+          .catch(() => {
+            if (name.endsWith('.doc')) {
+              showError('.doc format is not fully supported. Please save as .docx and re-upload, or paste the text manually.');
+            } else {
+              showError('Could not read DOCX file.');
+            }
+          });
       };
       reader.readAsArrayBuffer(file);
 
@@ -84,7 +101,7 @@
       const reader = new FileReader();
       reader.onload = async e => {
         try {
-          const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
+          const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(e.target.result) }).promise;
           let fullText = '';
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
@@ -99,8 +116,6 @@
       };
       reader.readAsArrayBuffer(file);
 
-    } else if (name.endsWith('.doc')) {
-      showError('Old .doc format not supported. Please save as .docx and re-upload.');
     } else {
       showError('Unsupported file type. Use .txt, .docx, or .pdf.');
     }
