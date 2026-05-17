@@ -29,18 +29,9 @@ const Parser = (() => {
     const text = rawText || '';
     const fullText = text;
 
-    // --- Guest Name: strict — must be a clean proper name, no keyword contamination ---
-    const namePattern = /^([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3})$/m;
-    const nameMatch = text.match(namePattern);
-    if (nameMatch) {
-      const candidate = nameMatch[1].trim();
-      const invalidWords = ['children','ages','pax','vehicle','cost','date','room','hotel','night','total','travel','check','accommodation','express','triple','issued','seater','days','adults','breakfast'];
-      const isClean = candidate.length >= 2 && candidate.length <= 50 &&
-        !invalidWords.some(w => candidate.toLowerCase().includes(w));
-      data.guestName = isClean ? candidate : '';
-    } else {
-      data.guestName = '';
-    }
+    // --- Guest Name: only extract if the document explicitly labels it ---
+    const guestNameMatch = text.match(/Guest\s+Name\s*[:\-]?\s*([^\n\r]+)/i);
+    data.guestName = guestNameMatch ? guestNameMatch[1].trim() : '';
 
     // --- Reference Number ---
     const refMatch = text.match(/(?:REF(?:ERENCE)?(?:\s*NO)?[:.\s]+|VLX\/|VLXTLND|Ref\s*[:.]?\s*)([A-Z0-9\/\-]+)/i);
