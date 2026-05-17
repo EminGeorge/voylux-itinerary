@@ -205,10 +205,10 @@ const Renderer = (() => {
       <div class="content-body">
         <!-- Guest Info -->
         <table class="guest-table">
-          <tr>
+          ${data.guestName ? `<tr>
             <td class="label">Guest Name</td>
-            <td colspan="3">${esc(data.guestName) || '—'}</td>
-          </tr>
+            <td colspan="3">${esc(data.guestName)}</td>
+          </tr>` : ''}
           <tr>
             <td class="label">No. of Guests</td>
             <td>${esc(data.guests) || '—'}</td>
